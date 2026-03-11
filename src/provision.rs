@@ -111,6 +111,8 @@ pub fn provision(app_name: &str, repo_url: &str) -> Result<(), String> {
     run_cmd_as_user(app_name, "curl -LsSf https://astral.sh/uv/install.sh | sh")?;
 
     // 9. Install backend dependencies + migrate
+    println!("→ adding gunicorn...");
+    run_cmd_as_user(app_name, &format!("cd {backend_dir} && ~/.local/bin/uv add gunicorn"))?;
     println!("→ installing backend dependencies...");
     run_cmd_as_user(app_name, &format!("cd {backend_dir} && ~/.local/bin/uv sync"))?;
     println!("→ running migrations...");
