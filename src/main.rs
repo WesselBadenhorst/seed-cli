@@ -1,5 +1,6 @@
 mod preflight;
 mod provision;
+mod remove;
 mod switch_url;
 mod templates;
 mod upgrade;
@@ -23,6 +24,11 @@ enum Commands {
         app_name: String,
         /// Git repository URL
         repo_url: String,
+    },
+    /// Remove an app and all its resources
+    Rm {
+        /// Name of the app to remove
+        app_name: String,
     },
     /// Change the domain for an app
     SwitchUrl {
@@ -54,6 +60,12 @@ fn main() -> ExitCode {
         Commands::New { app_name, repo_url } => {
             if let Err(e) = provision::provision(&app_name, &repo_url) {
                 eprintln!("provisioning failed: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+        Commands::Rm { app_name } => {
+            if let Err(e) = remove::remove(&app_name) {
+                eprintln!("remove failed: {e}");
                 return ExitCode::FAILURE;
             }
         }
