@@ -38,6 +38,37 @@ pub fn run_cmd_output(program: &str, args: &[&str]) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
+pub fn user_exists(name: &str) -> bool {
+    Command::new("id")
+        .arg(name)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
+}
+
+pub fn path_exists(path: &str) -> bool {
+    std::path::Path::new(path).exists()
+}
+
+pub fn pg_role_exists(name: &str) -> bool {
+    Command::new("sudo")
+        .args(["-u", "postgres", "psql", "-tAc",
+            &format!("SELECT 1 FROM pg_roles WHERE rolname='{name}'")])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "1")
+        .unwrap_or(false)
+}
+
+pub fn pg_db_exists(name: &str) -> bool {
+    Command::new("sudo")
+        .args(["-u", "postgres", "psql", "-tAc",
+            &format!("SELECT 1 FROM pg_database WHERE datname='{name}'")])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "1")
+        .unwrap_or(false)
+}
+
 pub fn prompt(message: &str) -> Result<String, String> {
     eprint!("{message}: ");
     let mut input = String::new();
