@@ -12,6 +12,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Provision a new app
+    New {
+        /// Name of the app
+        app_name: String,
+        /// Git repository URL
+        repo_url: String,
+    },
     /// Update seed to the latest version
     Upgrade,
 }
@@ -19,8 +26,7 @@ enum Commands {
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
-    let needs_preflight = !matches!(cli.command, Commands::Upgrade);
-    if needs_preflight {
+    if !matches!(cli.command, Commands::Upgrade) {
         if let Err(missing) = preflight_check() {
             eprintln!("seed: missing required dependencies:\n");
             for (name, hint) in &missing {
@@ -33,6 +39,12 @@ fn main() -> ExitCode {
     }
 
     match cli.command {
+        Commands::New { app_name, repo_url } => {
+            if let Err(e) = provision(&app_name, &repo_url) {
+                eprintln!("provisioning failed: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
         Commands::Upgrade => {
             if let Err(e) = upgrade() {
                 eprintln!("upgrade failed: {e}");
@@ -42,6 +54,31 @@ fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+fn provision(app_name: &str, _repo_url: &str) -> Result<(), String> {
+    println!("provisioning {app_name}...");
+
+    run_cmd("sudo", &["mkdir", "-p", "/webapps"])?;
+    run_cmd("sudo", &[
+        "useradd", "-m",
+        "-d", &format!("/webapps/{app_name}"),
+        "-s", "/usr/bin/zsh",
+        app_name,
+    ])?;
+
+    run_cmd("tmux", &["new-session", "-d", "-s", app_name])?;
+    run_cmd("tmux", &["split-window", "-h", "-t", app_name])?;
+
+    // Switch to the new user in the left pane (su - does cd $HOME)
+    run_cmd("tmux", &[
+        "send-keys", "-t", &format!("{app_name}:0.0"),
+        &format!("sudo su - {app_name}"), "Enter",
+    ])?;
+
+    run_cmd("tmux", &["attach-session", "-t", app_name])?;
+
+    Ok(())
 }
 
 struct Dependency {
