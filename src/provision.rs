@@ -106,19 +106,23 @@ pub fn provision(app_name: &str, repo_url: &str) -> Result<(), String> {
         run_cmd("sudo", &["chown", &format!("{app_name}:{app_name}"), &env_path])?;
     }
 
-    // 8. Install backend dependencies + migrate
+    // 8. Install uv for the app user
+    println!("→ installing uv...");
+    run_cmd_as_user(app_name, "curl -LsSf https://astral.sh/uv/install.sh | sh")?;
+
+    // 9. Install backend dependencies + migrate
     println!("→ installing backend dependencies...");
-    run_cmd_as_user(app_name, &format!("cd {backend_dir} && uv sync"))?;
+    run_cmd_as_user(app_name, &format!("cd {backend_dir} && ~/.local/bin/uv sync"))?;
     println!("→ running migrations...");
-    run_cmd_as_user(app_name, &format!("cd {backend_dir} && uv run python manage.py migrate"))?;
+    run_cmd_as_user(app_name, &format!("cd {backend_dir} && ~/.local/bin/uv run python manage.py migrate"))?;
 
     // 9. Install frontend + build
     println!("→ building frontend...");
     run_cmd_as_user(app_name, &format!("cd {frontend_dir} && npm install && npm run build"))?;
 
-    // 10. Collect static files
+    // 11. Collect static files
     println!("→ collecting static files...");
-    run_cmd_as_user(app_name, &format!("cd {backend_dir} && uv run python manage.py collectstatic --noinput"))?;
+    run_cmd_as_user(app_name, &format!("cd {backend_dir} && ~/.local/bin/uv run python manage.py collectstatic --noinput"))?;
 
     // 11. Supervisor config
     println!("→ writing supervisor config...");
