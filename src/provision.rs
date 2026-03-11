@@ -115,15 +115,22 @@ pub fn provision(app_name: &str, repo_url: &str) -> Result<(), String> {
         ])?;
     }
 
-    // 10. Generate backend/.env
-    let env_path = format!("{backend_dir}/.env");
-    if path_exists(&env_path) {
-        println!("→ .env already exists, skipping...");
-    } else {
-        println!("→ writing .env...");
-        let secret_key = generate_secret(50);
-        write_system_file(&env_path, &templates::dot_env(app_name, &domain, &secret_key, &db_password, &backend_dir))?;
-        run_cmd("sudo", &["chown", &format!("{app_name}:{app_name}"), &env_path])?;
+    // 10. Generate backend/.env from .env.example with production values
+    println!("→ writing .env...");
+    let secret_key = generate_secret(50);
+    let env_content = templates::dot_env(app_name, &domain, &secret_key, &db_password, &backend_dir);
+    tmux_send(app_name, &pane, &format!("cd {backend_dir}"))?;
+    tmux_send(app_name, &pane, "cp .env.example .env")?;
+    for line in env_content.lines() {
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((key, _)) = line.split_once('=') {
+            // Replace the line in .env or append if not present
+            tmux_send(app_name, &pane, &format!(
+                "grep -q '^{key}=' .env && sed -i 's|^{key}=.*|{line}|' .env || echo '{line}' >> .env"
+            ))?;
+        }
     }
 
     // 11. Backend: add gunicorn, sync deps, migrate
