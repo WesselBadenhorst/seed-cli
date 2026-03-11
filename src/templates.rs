@@ -94,7 +94,7 @@ server {{
     )
 }
 
-pub fn dot_env(app_name: &str, domain: &str, secret_key: &str, db_password: &str) -> String {
+pub fn dot_env(app_name: &str, domain: &str, secret_key: &str, db_password: &str, backend_dir: &str) -> String {
     format!(
         r#"# ==========================
 # Production Environment
@@ -107,6 +107,7 @@ ALLOWED_HOSTS={domain}
 
 # Django
 DJANGO_SETTINGS_MODULE=app.settings.prod
+STATIC_ROOT={backend_dir}/static
 
 # Database
 DATABASE_URL=postgres://{app_name}:{db_password}@localhost/{app_name}
