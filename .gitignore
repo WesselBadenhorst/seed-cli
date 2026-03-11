@@ -1,11 +1,5 @@
 # Rust
 /target/
-Cargo.lock
-
-# Compiled binaries
-seedapp
-seedapp-*-linux-*
-seedapp-*-apple-*
 
 # Editor
 .vscode/
@@ -16,3 +10,8 @@ seedapp-*-apple-*
 # OS
 .DS_Store
 Thumbs.db
+
+
+# Added by cargo
+
+/target
