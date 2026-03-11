@@ -51,6 +51,15 @@ pub fn prompt(message: &str) -> Result<String, String> {
     Ok(trimmed)
 }
 
+pub fn wait_for_enter(message: &str) -> Result<(), String> {
+    eprint!("{message}");
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input)
+        .map_err(|e| format!("failed to read input: {e}"))?;
+    Ok(())
+}
+
 pub fn generate_secret(length: usize) -> String {
     use rand::RngExt;
     const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*(-_=+)";

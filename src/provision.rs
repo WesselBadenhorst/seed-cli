@@ -1,7 +1,7 @@
 use crate::templates;
 use crate::util::{
     generate_password, generate_secret, prompt, repo_name_from_url, run_cmd, run_cmd_as_user,
-    write_system_file,
+    run_cmd_output, wait_for_enter, write_system_file,
 };
 
 pub fn provision(app_name: &str, repo_url: &str) -> Result<(), String> {
@@ -29,9 +29,26 @@ pub fn provision(app_name: &str, repo_url: &str) -> Result<(), String> {
     run_cmd("sudo", &["-u", app_name, "mkdir", "-p", &format!("{home}/run")])?;
     run_cmd("sudo", &["-u", app_name, "mkdir", "-p", &format!("{home}/logs")])?;
 
-    // 3. Clone the repo
+    // 3. Generate SSH key for the user and wait for deploy key setup
+    println!("→ generating ssh key...");
+    let ssh_dir = format!("{home}/.ssh");
+    let key_path = format!("{ssh_dir}/id_ed25519");
+    run_cmd_as_user(app_name, &format!(
+        "mkdir -p {ssh_dir} && chmod 700 {ssh_dir} && ssh-keygen -t ed25519 -f {key_path} -N '' -C '{app_name}@seed'"
+    ))?;
+
+    let pub_key = run_cmd_output("sudo", &["cat", &format!("{key_path}.pub")])?;
+    println!("\n╭─────────────────────────────────────────╮");
+    println!("│  Add this deploy key to your repository  │");
+    println!("╰─────────────────────────────────────────╯\n");
+    println!("{pub_key}\n");
+    wait_for_enter("press enter once the key has been added...")?;
+
+    // 4. Clone the repo as the app user
     println!("→ cloning {repo_url}...");
-    run_cmd("sudo", &["-u", app_name, "git", "clone", repo_url, &repo_dir])?;
+    run_cmd_as_user(app_name, &format!(
+        "GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new' git clone {repo_url} {repo_dir}"
+    ))?;
 
     // 4. Generate gunicorn.py
     println!("→ writing gunicorn config...");
