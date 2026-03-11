@@ -19,6 +19,19 @@ enum Commands {
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
+    let needs_preflight = !matches!(cli.command, Commands::Upgrade);
+    if needs_preflight {
+        if let Err(missing) = preflight_check() {
+            eprintln!("seed: missing required dependencies:\n");
+            for (name, hint) in &missing {
+                eprintln!("  ✗ {name}");
+                eprintln!("    → {hint}\n");
+            }
+            eprintln!("install the above and try again.");
+            return ExitCode::FAILURE;
+        }
+    }
+
     match cli.command {
         Commands::Upgrade => {
             if let Err(e) = upgrade() {
@@ -29,6 +42,63 @@ fn main() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+struct Dependency {
+    name: &'static str,
+    binary: &'static str,
+    install_hint: &'static str,
+}
+
+const DEPENDENCIES: &[Dependency] = &[
+    Dependency {
+        name: "tmux",
+        binary: "tmux",
+        install_hint: "sudo apt install tmux",
+    },
+    Dependency {
+        name: "neovim",
+        binary: "nvim",
+        install_hint: "sudo apt install neovim",
+    },
+    Dependency {
+        name: "nginx",
+        binary: "nginx",
+        install_hint: "sudo apt install nginx",
+    },
+    Dependency {
+        name: "supervisor",
+        binary: "supervisord",
+        install_hint: "sudo apt install supervisor",
+    },
+    Dependency {
+        name: "postgresql",
+        binary: "psql",
+        install_hint: "sudo apt install postgresql",
+    },
+];
+
+fn preflight_check() -> Result<(), Vec<(&'static str, &'static str)>> {
+    let missing: Vec<_> = DEPENDENCIES
+        .iter()
+        .filter(|dep| !command_exists(dep.binary))
+        .map(|dep| (dep.name, dep.install_hint))
+        .collect();
+
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(missing)
+    }
+}
+
+fn command_exists(cmd: &str) -> bool {
+    Command::new("which")
+        .arg(cmd)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
 }
 
 fn upgrade() -> Result<(), String> {
