@@ -1,0 +1,18 @@
+# Rust
+/target/
+Cargo.lock
+
+# Compiled binaries
+seedapp
+seedapp-*-linux-*
+seedapp-*-apple-*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
