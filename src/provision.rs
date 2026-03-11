@@ -56,6 +56,8 @@ pub fn provision(app_name: &str, repo_url: &str) -> Result<(), String> {
 
     // 4. Start tmux session and switch to app user in left pane
     println!("→ starting tmux session...");
+    // Kill any existing session from a previous run
+    let _ = run_cmd("tmux", &["kill-session", "-t", app_name]);
     run_cmd("tmux", &["new-session", "-d", "-s", app_name])?;
     run_cmd("tmux", &["split-window", "-h", "-t", app_name])?;
     tmux_send(app_name, &pane, &format!("sudo su - {app_name}"))?;
