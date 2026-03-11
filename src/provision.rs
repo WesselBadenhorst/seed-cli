@@ -78,8 +78,9 @@ pub fn provision(app_name: &str, repo_url: &str) -> Result<(), String> {
     } else {
         wait_for_enter("press enter once the deploy key has been added...")?;
         println!("→ cloning {repo_url}...");
+        tmux_send(app_name, &pane, &format!("cd {home}"))?;
         tmux_send(app_name, &pane, &format!(
-            "GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new' git clone {repo_url} {repo_dir}"
+            "GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new' git clone {repo_url}"
         ))?;
     }
 
